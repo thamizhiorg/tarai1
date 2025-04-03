@@ -1,22 +1,22 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Modal, 
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
   FlatList,
   SafeAreaView
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconSymbol } from './ui/IconSymbol';
 
-// Sample agent data
+// Agent data
 const agents = [
-  { id: '1', name: 'Agent 1', description: 'General purpose assistant' },
-  { id: '2', name: 'Agent 2', description: 'Code specialist' },
-  { id: '3', name: 'Agent 3', description: 'Data analyst' },
-  { id: '4', name: 'Agent 4', description: 'Creative writer' },
+  { id: '1', emoji: '🏷️', name: 'Products', description: 'Manage your product catalog' },
+  { id: '2', emoji: '📦', name: 'Inventory', description: 'Track and manage inventory' },
+  { id: '3', emoji: '🎈', name: 'Sales', description: 'Monitor sales performance' },
+  { id: '4', emoji: '👜', name: 'Orders', description: 'Process and track orders' },
 ];
 
 export function HUD() {
@@ -33,17 +33,17 @@ export function HUD() {
     <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.hudBar}>
         <Text style={styles.hudTitle}>HUD</Text>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.agentSelector}
           onPress={() => setModalVisible(true)}
         >
-          <Text style={styles.agentName}>{selectedAgent.name}</Text>
-          <IconSymbol 
-            name={{ type: 'material', name: 'chevron-right' }} 
-            size={18} 
+          <Text style={styles.agentEmoji}>{selectedAgent.emoji}</Text>
+          <IconSymbol
+            name={{ type: 'material', name: 'chevron-right' }}
+            size={18}
             color="#666"
-            style={styles.dropdownIcon} 
+            style={styles.dropdownIcon}
           />
         </TouchableOpacity>
       </View>
@@ -63,27 +63,28 @@ export function HUD() {
                 <Text style={styles.closeButton}>Close</Text>
               </TouchableOpacity>
             </View>
-            
+
             <FlatList
               data={agents}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[
                     styles.agentItem,
                     selectedAgent.id === item.id && styles.selectedAgentItem
                   ]}
                   onPress={() => handleSelectAgent(item)}
                 >
+                  <Text style={styles.agentItemEmoji}>{item.emoji}</Text>
                   <View style={styles.agentInfo}>
                     <Text style={styles.agentItemName}>{item.name}</Text>
                     <Text style={styles.agentDescription}>{item.description}</Text>
                   </View>
                   {selectedAgent.id === item.id && (
-                    <IconSymbol 
-                      name={{ type: 'material', name: 'check' }} 
-                      size={20} 
-                      color="#007AFF" 
+                    <IconSymbol
+                      name={{ type: 'material', name: 'check' }}
+                      size={20}
+                      color="#007AFF"
                     />
                   )}
                 </TouchableOpacity>
@@ -126,9 +127,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
-  agentName: {
-    fontSize: 14,
-    color: '#333',
+  agentEmoji: {
+    fontSize: 18,
     marginRight: 4,
   },
   dropdownIcon: {
@@ -173,6 +173,10 @@ const styles = StyleSheet.create({
   },
   selectedAgentItem: {
     backgroundColor: '#f0f8ff',
+  },
+  agentItemEmoji: {
+    fontSize: 24,
+    marginRight: 12,
   },
   agentInfo: {
     flex: 1,
