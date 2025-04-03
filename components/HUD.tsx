@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconSymbol } from './ui/IconSymbol';
+import { useAuth } from '@/context/AuthContext';
+import { router } from 'expo-router';
 
 // Agent data
 const agents = [
@@ -23,8 +25,17 @@ export function HUD() {
   const [selectedAgent, setSelectedAgent] = useState(agents[0]);
   const [modalVisible, setModalVisible] = useState(false);
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
 
-  const handleSelectAgent = (agent) => {
+  const handleSignOut = () => {
+    // Close the modal first
+    setModalVisible(false);
+
+    // Navigate to the dedicated sign-out screen
+    router.replace('/sign-out');
+  };
+
+  const handleSelectAgent = (agent: any) => {
     setSelectedAgent(agent);
     setModalVisible(false);
   };
@@ -64,32 +75,47 @@ export function HUD() {
               </TouchableOpacity>
             </View>
 
-            <FlatList
-              data={agents}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
+            <View style={styles.modalContentInner}>
+              <FlatList
+                data={agents}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.agentItem,
+                      selectedAgent.id === item.id && styles.selectedAgentItem
+                    ]}
+                    onPress={() => handleSelectAgent(item)}
+                  >
+                    <Text style={styles.agentItemEmoji}>{item.emoji}</Text>
+                    <View style={styles.agentInfo}>
+                      <Text style={styles.agentItemName}>{item.name}</Text>
+                      <Text style={styles.agentDescription}>{item.description}</Text>
+                    </View>
+                    {selectedAgent.id === item.id && (
+                      <IconSymbol
+                        name={{ type: 'material', name: 'check' }}
+                        size={20}
+                        color="#007AFF"
+                      />
+                    )}
+                  </TouchableOpacity>
+                )}
+                style={styles.agentList}
+              />
+
+              {user && (
                 <TouchableOpacity
-                  style={[
-                    styles.agentItem,
-                    selectedAgent.id === item.id && styles.selectedAgentItem
-                  ]}
-                  onPress={() => handleSelectAgent(item)}
+                  style={styles.profileContainer}
+                  onPress={handleSignOut}
                 >
-                  <Text style={styles.agentItemEmoji}>{item.emoji}</Text>
-                  <View style={styles.agentInfo}>
-                    <Text style={styles.agentItemName}>{item.name}</Text>
-                    <Text style={styles.agentDescription}>{item.description}</Text>
+                  <View style={styles.profileImageContainer}>
+                    <Text style={styles.profileInitial}>{user.email.charAt(0).toUpperCase()}</Text>
                   </View>
-                  {selectedAgent.id === item.id && (
-                    <IconSymbol
-                      name={{ type: 'material', name: 'check' }}
-                      size={20}
-                      color="#007AFF"
-                    />
-                  )}
+                  <Text style={styles.profileEmail}>{user.email}</Text>
                 </TouchableOpacity>
               )}
-            />
+            </View>
           </View>
         </View>
       </Modal>
@@ -141,10 +167,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
     paddingBottom: 20,
-    maxHeight: '70%',
+    height: '100%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -190,5 +214,40 @@ const styles = StyleSheet.create({
   agentDescription: {
     fontSize: 14,
     color: '#666',
+  },
+  modalContentInner: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+  },
+  agentList: {
+    flex: 1,
+  },
+  profileContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  profileImageContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  profileInitial: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  profileEmail: {
+    fontSize: 16,
+    color: '#333',
+    flex: 1,
   },
 });

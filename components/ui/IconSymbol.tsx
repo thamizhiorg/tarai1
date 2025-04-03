@@ -13,7 +13,8 @@ type MaterialIconName =
   | 'send'
   | 'code'
   | 'chevron-right'
-  | 'check';
+  | 'check'
+  | 'logout'; // for sign out
 
 type IoniconsName =
   | 'sparkles-outline' // for AI
