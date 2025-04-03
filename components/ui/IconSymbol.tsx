@@ -1,31 +1,31 @@
-// This file is a fallback for using MaterialIcons on Android and web.
+// This file supports both MaterialIcons and Ionicons
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolWeight } from 'expo-symbols';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import React from 'react';
 import { OpaqueColorValue, StyleProp, ViewStyle } from 'react-native';
 
-// Add your SFSymbol to MaterialIcons mappings here.
-const MAPPING = {
-  // See MaterialIcons here: https://icons.expo.fyi
-  // See SF Symbols in the SF Symbols app on Mac.
-  'house.fill': 'home',
-  'paperplane.fill': 'send',
-  'chevron.left.forwardslash.chevron.right': 'code',
-  'chevron.right': 'chevron-right',
-} as Partial<
-  Record<
-    import('expo-symbols').SymbolViewProps['name'],
-    React.ComponentProps<typeof MaterialIcons>['name']
-  >
->;
+// Define icon types
+type MaterialIconName =
+  | 'workspaces-outline' // for workspace
+  | 'alternate-email' // for chat
+  | 'home'
+  | 'send'
+  | 'code'
+  | 'chevron-right'
+  | 'check';
 
-export type IconSymbolName = keyof typeof MAPPING;
+type IoniconsName =
+  | 'sparkles-outline' // for AI
+  | 'play-outline'; // for tasks
+
+// Combined icon type
+export type IconSymbolName =
+  | { type: 'material'; name: MaterialIconName }
+  | { type: 'ionicons'; name: IoniconsName };
 
 /**
- * An icon component that uses native SFSymbols on iOS, and MaterialIcons on Android and web. This ensures a consistent look across platforms, and optimal resource usage.
- *
- * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
+ * An icon component that supports both MaterialIcons and Ionicons.
  */
 export function IconSymbol({
   name,
@@ -37,7 +37,17 @@ export function IconSymbol({
   size?: number;
   color: string | OpaqueColorValue;
   style?: StyleProp<ViewStyle>;
-  weight?: SymbolWeight;
+  weight?: any; // Keep for compatibility
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  // Check the icon type and render the appropriate component
+  if (typeof name === 'string') {
+    // For backward compatibility, assume MaterialIcons
+    return <MaterialIcons color={color} size={size} name={name as any} style={style} />;
+  }
+
+  if (name.type === 'material') {
+    return <MaterialIcons color={color} size={size} name={name.name} style={style} />;
+  } else {
+    return <Ionicons color={color} size={size} name={name.name} style={style} />;
+  }
 }
