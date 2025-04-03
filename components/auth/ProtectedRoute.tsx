@@ -23,9 +23,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     // Only redirect if not loading, no user, and we haven't already redirected
     // This handles cases where the user is not authenticated but tries to access protected routes
     if (!isLoading && !user && !hasRedirected.current) {
-      hasRedirected.current = true;
-      // Navigate to sign-in page
-      router.navigate('/');
+      // Add a small delay to ensure navigation container is fully initialized
+      const timer = setTimeout(() => {
+        hasRedirected.current = true;
+        // Navigate to sign-in page
+        router.replace('/');
+      }, 100);
+
+      return () => clearTimeout(timer);
     }
 
     // Reset the flag if the user is logged in

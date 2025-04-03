@@ -19,9 +19,14 @@ export default function SignInScreen() {
 
   useEffect(() => {
     if (user && !hasRedirected.current) {
-      hasRedirected.current = true;
-      // Navigate to workspace if authenticated
-      router.navigate('/(tabs)/workspace');
+      // Add a small delay to ensure navigation container is fully initialized
+      const timer = setTimeout(() => {
+        hasRedirected.current = true;
+        // Navigate to workspace if authenticated
+        router.replace('/(tabs)/workspace');
+      }, 100);
+
+      return () => clearTimeout(timer);
     } else if (!user) {
       // Reset the flag when user is null
       hasRedirected.current = false;
