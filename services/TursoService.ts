@@ -1,4 +1,5 @@
 import { Product, Inventory } from '@/types/Product';
+import { Alert } from 'react-native';
 // Using the built-in fetch API instead of node-fetch
 
 const TURSO_API_URL = 'https://tar-tarframework.aws-eu-west-1.turso.io/v2/pipeline';
@@ -76,10 +77,35 @@ export async function fetchProducts(): Promise<Product[]> {
     }
 
     // Convert JSON strings to objects
-    const options = row.options ? JSON.parse(row.options) : null;
-    const modifiers = row.modifiers ? JSON.parse(row.modifiers) : null;
-    const metafields = row.metafields ? JSON.parse(row.metafields) : null;
-    const channels = row.channels ? JSON.parse(row.channels) : null;
+    // Parse JSON fields and ensure they're arrays
+    let options = [];
+    let modifiers = [];
+    let metafields = [];
+    let channels = [];
+
+    try {
+      if (row.options && row.options !== '{}') {
+        const parsed = JSON.parse(row.options);
+        options = Array.isArray(parsed) ? parsed : [];
+      }
+
+      if (row.modifiers && row.modifiers !== '{}') {
+        const parsed = JSON.parse(row.modifiers);
+        modifiers = Array.isArray(parsed) ? parsed : [];
+      }
+
+      if (row.metafields && row.metafields !== '{}') {
+        const parsed = JSON.parse(row.metafields);
+        metafields = Array.isArray(parsed) ? parsed : [];
+      }
+
+      if (row.channels && row.channels !== '{}') {
+        const parsed = JSON.parse(row.channels);
+        channels = Array.isArray(parsed) ? parsed : [];
+      }
+    } catch (error) {
+      console.error('Error parsing JSON fields:', error);
+    }
 
     return {
       id: parseInt(row.id),
@@ -101,7 +127,8 @@ export async function fetchProducts(): Promise<Product[]> {
       options,
       modifiers,
       metafields,
-      channels
+      channels,
+      notes: row.notes
     };
   });
 }
@@ -187,8 +214,23 @@ export async function fetchAllInventory(): Promise<Inventory[]> {
     }
 
     // Convert JSON strings to objects
-    const metafields = row.metafields ? JSON.parse(row.metafields) : null;
-    const modifiers = row.modifiers ? JSON.parse(row.modifiers) : null;
+    // Parse JSON fields and ensure they're arrays
+    let metafields = [];
+    let modifiers = [];
+
+    try {
+      if (row.metafields && row.metafields !== '{}') {
+        const parsed = JSON.parse(row.metafields);
+        metafields = Array.isArray(parsed) ? parsed : [];
+      }
+
+      if (row.modifiers && row.modifiers !== '{}') {
+        const parsed = JSON.parse(row.modifiers);
+        modifiers = Array.isArray(parsed) ? parsed : [];
+      }
+    } catch (error) {
+      console.error('Error parsing JSON fields:', error);
+    }
 
     return {
       id: parseInt(row.id),
@@ -233,7 +275,9 @@ export async function updateProduct(product: Product): Promise<boolean> {
         category = '${(product.category || '').replace(/'/g, "''")}',
         type = '${(product.type || '').replace(/'/g, "''")}',
         vendor = '${(product.vendor || '').replace(/'/g, "''")}',
-        brand = '${(product.brand || '').replace(/'/g, "''")}'
+        brand = '${(product.brand || '').replace(/'/g, "''")}',
+        f1 = '${(product.f1 || '').replace(/'/g, "''")}',
+        notes = '${(product.notes || '').replace(/'/g, "''")}'
       WHERE id = ${product.id}
     `;
 
@@ -263,7 +307,7 @@ export async function createProduct(product: Omit<Product, 'id'>): Promise<Produ
     const sql = `
       INSERT INTO products (
         storeid, name, price, stock, category, type, vendor, brand,
-        options, modifiers, metafields, channels
+        options, modifiers, metafields, channels, f1, notes
       ) VALUES (
         'S1',
         '${product.name.replace(/'/g, "''")}',
@@ -276,7 +320,9 @@ export async function createProduct(product: Omit<Product, 'id'>): Promise<Produ
         '${options}',
         '${modifiers}',
         '${metafields}',
-        '${channels}'
+        '${channels}',
+        '${(product.f1 || '').replace(/'/g, "''")}',
+        '${(product.notes || '').replace(/'/g, "''")}'
       )
     `;
 
@@ -313,5 +359,136 @@ export async function createProduct(product: Omit<Product, 'id'>): Promise<Produ
   } catch (error) {
     console.error('Error creating product:', error);
     return null;
+  }
+}
+
+/**
+ * Create a new inventory item
+ */
+export async function createInventoryItem(item: Omit<Inventory, 'id'>): Promise<Inventory | null> {
+  try {
+    console.log('Creating new inventory item for product:', item.product_id);
+
+    // Convert JSON objects to strings
+    const metafields = item.metafields ? JSON.stringify(item.metafields) : '{}';
+    const modifiers = item.modifiers ? JSON.stringify(item.modifiers) : '{}';
+
+    // Calculate instock value if not provided
+    const instock = item.instock ?? (item.available ?? 0) - (item.committed ?? 0);
+
+    // Build the SQL query
+    const sql = `
+      INSERT INTO inventory (
+        product_id, name, f, sku, barcode, available, committed, instock,
+        price, compare, cost, metafields, modifiers, location
+      ) VALUES (
+        ${item.product_id},
+        '${(item.name || '').replace(/'/g, "''")}',
+        ${item.f ? `'${item.f.replace(/'/g, "''")}' ` : 'NULL'},
+        '${(item.sku || '').replace(/'/g, "''")}',
+        ${item.barcode ? `'${item.barcode.replace(/'/g, "''")}' ` : 'NULL'},
+        ${item.available || 0},
+        ${item.committed || 0},
+        ${instock},
+        ${item.price || 0},
+        ${item.compare || 'NULL'},
+        ${item.cost || 'NULL'},
+        '${metafields}',
+        '${modifiers}',
+        ${item.location ? `'${item.location.replace(/'/g, "''")}' ` : 'NULL'}
+      )
+    `;
+
+    // Execute the query
+    await executeQuery(sql);
+
+    // Get the last inserted ID
+    const result = await executeQuery('SELECT last_insert_rowid() as id');
+    if (!result || !result.rows || !Array.isArray(result.rows) || result.rows.length === 0) {
+      throw new Error('Failed to get new inventory item ID');
+    }
+
+    // Extract the ID from the result
+    const row: Record<string, any> = {};
+    if (result.cols && Array.isArray(result.cols)) {
+      result.cols.forEach((col, index) => {
+        const colValue = result.rows[0][index];
+        if (colValue && colValue.type !== 'null') {
+          row[col.name] = colValue.value;
+        } else {
+          row[col.name] = null;
+        }
+      });
+    }
+
+    const newId = parseInt(row.id);
+    console.log('Inventory item created successfully with ID:', newId);
+
+    // Return the new inventory item with its ID
+    return {
+      ...item,
+      id: newId,
+      instock
+    } as Inventory;
+  } catch (error) {
+    console.error('Error creating inventory item:', error);
+    return null;
+  }
+}
+
+/**
+ * Update an existing inventory item
+ */
+export async function updateInventoryItem(item: Inventory): Promise<boolean> {
+  try {
+    console.log('Updating inventory item:', item.id);
+
+    // Convert JSON objects to strings
+    const metafields = item.metafields ? JSON.stringify(item.metafields) : '{}';
+    const modifiers = item.modifiers ? JSON.stringify(item.modifiers) : '{}';
+
+    // Calculate instock value if not provided
+    const instock = item.instock ?? (item.available ?? 0) - (item.committed ?? 0);
+
+    // Build the SQL query
+    const sql = `
+      UPDATE inventory
+      SET
+        name = '${(item.name || '').replace(/'/g, "''")}',
+        sku = '${(item.sku || '').replace(/'/g, "''")}',
+        barcode = ${item.barcode ? `'${item.barcode.replace(/'/g, "''")}' ` : 'NULL'},
+        available = ${item.available || 0},
+        committed = ${item.committed || 0},
+        instock = ${instock},
+        price = ${item.price || 0},
+        location = ${item.location ? `'${item.location.replace(/'/g, "''")}' ` : 'NULL'}
+      WHERE id = ${item.id}
+    `;
+
+    await executeQuery(sql);
+    console.log('Inventory item updated successfully');
+    return true;
+  } catch (error) {
+    console.error('Error updating inventory item:', error);
+    return false;
+  }
+}
+
+/**
+ * Delete an inventory item
+ */
+export async function deleteInventoryItem(itemId: number): Promise<boolean> {
+  try {
+    console.log('Deleting inventory item:', itemId);
+
+    // Build the SQL query
+    const sql = `DELETE FROM inventory WHERE id = ${itemId}`;
+
+    await executeQuery(sql);
+    console.log('Inventory item deleted successfully');
+    return true;
+  } catch (error) {
+    console.error('Error deleting inventory item:', error);
+    return false;
   }
 }

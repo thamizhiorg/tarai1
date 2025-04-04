@@ -191,7 +191,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       options: {},
       modifiers: {},
       metafields: {},
-      channels: {}
+      channels: {},
+      notes: null
     };
   }, []);
 
