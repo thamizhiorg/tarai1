@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,21 +11,30 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconSymbol } from './ui/IconSymbol';
 import { useAuth } from '@/context/AuthContext';
+import { useProducts } from '@/context/ProductContext';
+import { useAgent } from '@/context/AgentContext';
 import { router } from 'expo-router';
 
 // Agent data
 const agents = [
-  { id: '1', emoji: '🏷️', name: 'Products', description: 'Manage your product catalog' },
+  { id: '1', emoji: '🏷️', name: 'Products', description: 'View and manage your product catalog' },
   { id: '2', emoji: '📦', name: 'Inventory', description: 'Track and manage inventory' },
-  { id: '3', emoji: '🎈', name: 'Sales', description: 'Monitor sales performance' },
   { id: '4', emoji: '👜', name: 'Orders', description: 'Process and track orders' },
 ];
 
-export function HUD() {
-  const [selectedAgent, setSelectedAgent] = useState(agents[0]);
+type HUDProps = {
+  onAgentChange?: (agentId: string) => void;
+};
+
+export function HUD({ onAgentChange }: HUDProps = {}) {
+  const { currentAgentId, setCurrentAgentId } = useAgent();
+  const [selectedAgent, setSelectedAgent] = useState(() => {
+    return agents.find(agent => agent.id === currentAgentId) || agents[0];
+  });
   const [modalVisible, setModalVisible] = useState(false);
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { loadProducts, productsLoaded } = useProducts();
 
   const handleSignOut = () => {
     // Close the modal first
@@ -38,7 +47,41 @@ export function HUD() {
   const handleSelectAgent = (agent: any) => {
     setSelectedAgent(agent);
     setModalVisible(false);
+
+    // Update agent context
+    setCurrentAgentId(agent.id);
+
+    // Notify parent component about agent change if provided
+    if (onAgentChange) {
+      onAgentChange(agent.id);
+    }
+
+    // Handle navigation based on agent selection
+    if (agent.id === '1') { // Products agent - View products
+      // Only load products if not already loaded
+      if (!productsLoaded) {
+        loadProducts();
+      }
+      // Navigate to workspace tab
+      router.replace('/(tabs)/workspace');
+    }
   };
+
+  // Load products on initial render if Products agent is selected and not already loaded
+  useEffect(() => {
+    if (selectedAgent.id === '1' && !productsLoaded) { // Products agent
+      console.log('Initial load of products from HUD');
+      loadProducts();
+    }
+  }, [loadProducts, productsLoaded, selectedAgent.id]);
+
+  // Update selected agent when currentAgentId changes
+  useEffect(() => {
+    const agent = agents.find(a => a.id === currentAgentId);
+    if (agent && agent.id !== selectedAgent.id) {
+      setSelectedAgent(agent);
+    }
+  }, [currentAgentId]);
 
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
