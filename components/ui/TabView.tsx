@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Animated,
   Dimensions
 } from 'react-native';
 
@@ -12,6 +11,7 @@ type Tab = {
   key: string;
   title: string;
   icon?: React.ReactNode;
+  showTitleWithIcon?: boolean;
 };
 
 type TabViewProps = {
@@ -22,74 +22,58 @@ type TabViewProps = {
 
 export function TabView({ tabs, renderScene, initialTab }: TabViewProps) {
   const [activeTab, setActiveTab] = useState(initialTab || tabs[0].key);
-  const [indicatorPosition] = useState(new Animated.Value(0));
-  
-  const handleTabPress = (tabKey: string, index: number) => {
-    setActiveTab(tabKey);
-    
-    // Animate the indicator
-    Animated.spring(indicatorPosition, {
-      toValue: index * (Dimensions.get('window').width / tabs.length),
-      useNativeDriver: true,
-      friction: 8,
-    }).start();
-  };
 
-  // Initialize indicator position based on initial tab
-  React.useEffect(() => {
-    const initialIndex = tabs.findIndex(tab => tab.key === activeTab);
-    if (initialIndex >= 0) {
-      indicatorPosition.setValue(initialIndex * (Dimensions.get('window').width / tabs.length));
-    }
-  }, []);
+  const handleTabPress = (tabKey: string) => {
+    setActiveTab(tabKey);
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.tabBar}>
-        {tabs.map((tab, index) => (
+        {tabs.map((tab) => (
           <TouchableOpacity
             key={tab.key}
             style={[
               styles.tabItem,
               activeTab === tab.key && styles.activeTabItem
             ]}
-            onPress={() => handleTabPress(tab.key, index)}
+            onPress={() => handleTabPress(tab.key)}
           >
-            {tab.icon}
-            <Text
-              style={[
-                styles.tabTitle,
-                activeTab === tab.key && styles.activeTabTitle
-              ]}
-            >
-              {tab.title}
-            </Text>
+            {tab.icon && React.cloneElement(tab.icon as React.ReactElement, {
+              color: activeTab === tab.key ? '#007AFF' : '#666'
+            })}
+            {(tab.showTitleWithIcon !== false) && (
+              <Text
+                style={[
+                  styles.tabTitle,
+                  activeTab === tab.key && styles.activeTabTitle,
+                  !tab.icon && styles.letterTab,
+                  !tab.icon && activeTab === tab.key && styles.activeLetterTab
+                ]}
+              >
+                {tab.title}
+              </Text>
+            )}
           </TouchableOpacity>
         ))}
-        
-        <Animated.View
+
+        {/* Static indicator instead of animated */}
+        <View
           style={[
             styles.indicator,
             {
               width: Dimensions.get('window').width / tabs.length,
-              transform: [{ translateX: indicatorPosition }]
+              left: (tabs.findIndex(tab => tab.key === activeTab) * (Dimensions.get('window').width / tabs.length))
             }
           ]}
         />
       </View>
-      
+
       <View style={styles.sceneContainer}>
-        {tabs.map(tab => (
-          <View
-            key={tab.key}
-            style={[
-              styles.scene,
-              { display: activeTab === tab.key ? 'flex' : 'none' }
-            ]}
-          >
-            {renderScene(tab)}
-          </View>
-        ))}
+        {/* Only render the active tab for better performance */}
+        <View style={styles.scene}>
+          {renderScene(tabs.find(tab => tab.key === activeTab) || tabs[0])}
+        </View>
       </View>
     </View>
   );
@@ -105,6 +89,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
     position: 'relative',
+    paddingVertical: 8,
   },
   tabItem: {
     flex: 1,
@@ -114,7 +99,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   activeTabItem: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: 'transparent',
   },
   tabTitle: {
     fontSize: 14,
@@ -125,11 +110,21 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '500',
   },
+  letterTab: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginLeft: 0,
+  },
+  activeLetterTab: {
+    color: '#007AFF',
+  },
   indicator: {
     position: 'absolute',
-    height: 2,
+    height: 3,
     backgroundColor: '#007AFF',
     bottom: 0,
+    borderRadius: 1.5,
+    transition: 'left 0s', // Instant transition
   },
   sceneContainer: {
     flex: 1,

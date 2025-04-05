@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Inventory } from '@/types/Product';
 import { InventoryItemRow } from './InventoryItemRow';
+import { InventoryItemFullScreen } from './InventoryItemFullScreen';
 import {
   fetchInventoryForProduct,
   createInventoryItem,
@@ -26,6 +27,8 @@ export function InventoryManager({ productId }: InventoryManagerProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [editingItem, setEditingItem] = useState<Inventory | null>(null);
+  const [isFullScreenVisible, setIsFullScreenVisible] = useState(false);
 
   // Load inventory when component mounts or productId changes
   useEffect(() => {
@@ -56,7 +59,8 @@ export function InventoryManager({ productId }: InventoryManagerProps) {
 
   const handleAddNew = () => {
     // Create a new empty inventory item template
-    const newItem: Omit<Inventory, 'id'> = {
+    const newItem: Inventory = {
+      id: -1,
       product_id: productId,
       name: '',
       f: null,
@@ -74,8 +78,8 @@ export function InventoryManager({ productId }: InventoryManagerProps) {
     };
 
     setIsAddingNew(true);
-    // Add temporary ID for UI purposes
-    setInventory(prev => [{ ...newItem, id: -1 }, ...prev]);
+    setEditingItem(newItem);
+    setIsFullScreenVisible(true);
   };
 
   const handleSaveItem = async (item: Inventory) => {
@@ -142,6 +146,13 @@ export function InventoryManager({ productId }: InventoryManagerProps) {
   const handleCancelAdd = () => {
     setInventory(prev => prev.filter(i => i.id !== -1));
     setIsAddingNew(false);
+    setEditingItem(null);
+    setIsFullScreenVisible(false);
+  };
+
+  const handleEditItem = (item: Inventory) => {
+    setEditingItem(item);
+    setIsFullScreenVisible(true);
   };
 
   if (isLoading && inventory.length === 0) {
@@ -189,14 +200,25 @@ export function InventoryManager({ productId }: InventoryManagerProps) {
       ) : (
         <View style={styles.listContent}>
           {inventory.map(item => (
-            <InventoryItemRow
+            <TouchableOpacity
               key={item.id.toString()}
-              item={item}
-              isNew={item.id === -1}
-              onSave={handleSaveItem}
-              onDelete={handleDeleteItem}
-              onCancel={handleCancelAdd}
-            />
+              style={styles.inventoryItemContainer}
+              onPress={() => handleEditItem(item)}
+            >
+              <View style={styles.infoContainer}>
+                <Text style={styles.name}>{item.name}</Text>
+                <View style={styles.detailsRow}>
+                  <Text style={styles.detailText}>SKU: {item.sku}</Text>
+                  <Text style={styles.detailText}>Available: {item.available}</Text>
+                  <Text style={styles.detailText}>In Stock: {item.instock}</Text>
+                  <Text style={styles.detailText}>Price: ${item.price?.toFixed(2)}</Text>
+                  {item.cost && <Text style={styles.detailText}>Cost: ${item.cost.toFixed(2)}</Text>}
+                </View>
+              </View>
+              <View style={styles.actionsContainer}>
+                <Ionicons name="chevron-forward" size={18} color="#999" />
+              </View>
+            </TouchableOpacity>
           ))}
         </View>
       )}
@@ -206,11 +228,56 @@ export function InventoryManager({ productId }: InventoryManagerProps) {
           <ActivityIndicator size="large" color="#007AFF" />
         </View>
       )}
+
+      {/* Full Screen Inventory Edit/Add Form */}
+      {editingItem && (
+        <InventoryItemFullScreen
+          visible={isFullScreenVisible}
+          item={editingItem}
+          isNew={editingItem.id === -1}
+          onSave={handleSaveItem}
+          onCancel={handleCancelAdd}
+          isSaving={isLoading}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  inventoryItemContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#fff',
+  },
+  infoContainer: {
+    flex: 1,
+  },
+  name: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  detailText: {
+    fontSize: 12,
+    color: '#666',
+    marginRight: 8,
+    marginBottom: 2,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',

@@ -8,11 +8,12 @@ import {
   Platform,
   Text
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Product, ProductOption, ProductModifier, ProductMetafield, ProductChannel } from '@/types/Product';
 import { useProducts } from '@/context/ProductContext';
 import { NotionTableInput } from '@/components/ui/NotionTableInput';
-import { NotionFormHeader } from '@/components/ui/NotionFormHeader';
+import { RichTextEditor } from '@/components/ui/RichTextEditor';
+import { ProductTabHeader } from '@/components/products/ProductTabHeader';
 import { TabView } from '@/components/ui/TabView';
 import { InventoryManager } from '@/components/inventory/InventoryManager';
 import { ProductImagesEditor } from '@/components/products/ProductImagesEditor';
@@ -44,7 +45,7 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
   const [unit, setUnit] = useState(product.unit || '');
   const [collection, setCollection] = useState(product.collection || '');
   const [notes, setNotes] = useState(product.notes || '');
-  
+
   // Image fields
   const [images, setImages] = useState<(string | null)[]>([
     product.f1 || null,
@@ -78,7 +79,7 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
     setUnit(product.unit || '');
     setCollection(product.collection || '');
     setNotes(product.notes || '');
-    
+
     setImages([
       product.f1 || null,
       product.f2 || null,
@@ -86,7 +87,7 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
       product.f4 || null,
       product.f5 || null
     ]);
-    
+
     setOptions(product.options || []);
     setModifiers(product.modifiers || []);
     setMetafields(product.metafields || []);
@@ -186,14 +187,6 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
 
         {/* Basic Product Details */}
         <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="information-circle-outline" size={18} color="#666" />
-            <Text style={styles.sectionHeaderText}>Product Details</Text>
-            <View style={styles.sectionTitleContainer}>
-              <View style={styles.sectionTitleLine} />
-            </View>
-          </View>
-          
           <View style={styles.tableContainer}>
             <NotionTableInput
               label="Name"
@@ -202,7 +195,7 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
               placeholder="Product name"
               icon="text-outline"
             />
-            
+
             <NotionTableInput
               label="Price"
               value={price}
@@ -211,7 +204,7 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
               keyboardType="decimal-pad"
               icon="cash-outline"
             />
-            
+
             <NotionTableInput
               label="Stock"
               value={stock}
@@ -220,7 +213,7 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
               keyboardType="number-pad"
               icon="cube-outline"
             />
-            
+
             <NotionTableInput
               label="Category"
               value={category}
@@ -228,7 +221,7 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
               placeholder="Category"
               icon="folder-outline"
             />
-            
+
             <NotionTableInput
               label="Type"
               value={type}
@@ -236,7 +229,7 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
               placeholder="Type"
               icon="pricetag-outline"
             />
-            
+
             <NotionTableInput
               label="Collection"
               value={collection}
@@ -244,7 +237,7 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
               placeholder="Collection"
               icon="albums-outline"
             />
-            
+
             <NotionTableInput
               label="Unit"
               value={unit}
@@ -252,7 +245,7 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
               placeholder="Unit (e.g., pcs, kg)"
               icon="resize-outline"
             />
-            
+
             <NotionTableInput
               label="Vendor"
               value={vendor}
@@ -260,49 +253,13 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
               placeholder="Vendor"
               icon="business-outline"
             />
-            
+
             <NotionTableInput
               label="Brand"
               value={brand}
               onChangeText={setBrand}
               placeholder="Brand"
               icon="bookmark-outline"
-            />
-          </View>
-        </View>
-
-        {/* Product Options */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="options-outline" size={18} color="#666" />
-            <Text style={styles.sectionHeaderText}>Options & Variants</Text>
-            <View style={styles.sectionTitleContainer}>
-              <View style={styles.sectionTitleLine} />
-            </View>
-          </View>
-          
-          <View style={styles.tableContainer}>
-            <ProductOptionsEditor
-              options={options}
-              onChange={setOptions}
-            />
-          </View>
-        </View>
-
-        {/* Product Modifiers */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="construct-outline" size={18} color="#666" />
-            <Text style={styles.sectionHeaderText}>Modifiers</Text>
-            <View style={styles.sectionTitleContainer}>
-              <View style={styles.sectionTitleLine} />
-            </View>
-          </View>
-          
-          <View style={styles.tableContainer}>
-            <ModifiersEditor
-              modifiers={modifiers}
-              onChange={setModifiers}
             />
           </View>
         </View>
@@ -316,7 +273,7 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
               <View style={styles.sectionTitleLine} />
             </View>
           </View>
-          
+
           <View style={styles.tableContainer}>
             <MetafieldsEditor
               metafields={metafields}
@@ -324,17 +281,51 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
             />
           </View>
         </View>
+      </ScrollView>
+    );
+  };
 
+  // Render the options & modifiers tab content
+  const renderOptionsModifiersTab = () => {
+    return (
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={true}
+      >
+        {/* Product Options */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.tableContainer}>
+            <ProductOptionsEditor
+              options={options}
+              onChange={setOptions}
+            />
+          </View>
+        </View>
+
+        {/* Product Modifiers */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.tableContainer}>
+            <ModifiersEditor
+              modifiers={modifiers}
+              onChange={setModifiers}
+            />
+          </View>
+        </View>
+      </ScrollView>
+    );
+  };
+
+  // Render the notes tab content
+  const renderNotesAndChannelsTab = () => {
+    return (
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Sales Channels */}
         <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="globe-outline" size={18} color="#666" />
-            <Text style={styles.sectionHeaderText}>Sales Channels</Text>
-            <View style={styles.sectionTitleContainer}>
-              <View style={styles.sectionTitleLine} />
-            </View>
-          </View>
-          
           <View style={styles.tableContainer}>
             <ChannelsEditor
               channels={channels}
@@ -343,27 +334,14 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
           </View>
         </View>
 
-        {/* Notes */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="create-outline" size={18} color="#666" />
-            <Text style={styles.sectionHeaderText}>Notes</Text>
-            <View style={styles.sectionTitleContainer}>
-              <View style={styles.sectionTitleLine} />
-            </View>
-          </View>
-
-          <View style={styles.tableContainer}>
-            <NotionTableInput
-              label="Notes"
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="Add notes about this product..."
-              icon="list-outline"
-              multiline={true}
-              numberOfLines={4}
-            />
-          </View>
+        {/* Rich Text Notes */}
+        <View style={[styles.sectionContainer, { marginTop: 24 }]}>
+          <RichTextEditor
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Add notes about this product..."
+            minHeight={200}
+          />
         </View>
       </ScrollView>
     );
@@ -396,32 +374,50 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
       keyboardVerticalOffset={100}
     >
       <View style={styles.formContainer}>
-        <NotionFormHeader
-          title={product.id ? 'Edit Product' : 'New Product'}
-          subtitle={product.id > 0 ? `ID: ${product.id}` : undefined}
-          onSave={handleSave}
-          onCancel={onCancel}
-          isSaving={isSaving}
-        />
-        
+
+        <View style={styles.headerContainer}>
+          <ProductTabHeader
+            onSave={handleSave}
+            onCancel={onCancel}
+            isSaving={isSaving}
+          />
+        </View>
+
         <TabView
           tabs={[
             {
               key: 'details',
-              title: 'Product Details',
-              icon: <Ionicons name="information-circle-outline" size={18} color="#666" style={{marginRight: 4}} />
+              title: 'C',
+              showTitleWithIcon: true
+            },
+            {
+              key: 'options',
+              title: 'O',
+              showTitleWithIcon: true
             },
             {
               key: 'inventory',
-              title: 'Inventory',
-              icon: <Ionicons name="cube-outline" size={18} color="#666" style={{marginRight: 4}} />
+              title: 'I',
+              showTitleWithIcon: true
+            },
+            {
+              key: 'notes',
+              title: 'N',
+              showTitleWithIcon: true
             }
           ]}
           renderScene={(tab) => {
-            if (tab.key === 'details') {
-              return renderDetailsTab();
-            } else {
-              return renderInventoryTab();
+            switch (tab.key) {
+              case 'details':
+                return renderDetailsTab();
+              case 'options':
+                return renderOptionsModifiersTab();
+              case 'inventory':
+                return renderInventoryTab();
+              case 'notes':
+                return renderNotesAndChannelsTab();
+              default:
+                return renderDetailsTab();
             }
           }}
         />
@@ -438,6 +434,10 @@ const styles = StyleSheet.create({
   formContainer: {
     flex: 1,
     padding: 0,
+  },
+  headerContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
   scrollView: {
     flex: 1,

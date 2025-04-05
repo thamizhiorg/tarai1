@@ -16,8 +16,8 @@ type ProductImagesEditorProps = {
   maxImages?: number;
 };
 
-export function ProductImagesEditor({ 
-  images, 
+export function ProductImagesEditor({
+  images,
   onChange,
   maxImages = 5
 }: ProductImagesEditorProps) {
@@ -30,17 +30,17 @@ export function ProductImagesEditor({
     }
 
     const placeholderUrl = 'https://via.placeholder.com/300x300?text=Product+Image';
-    
+
     // Find the first null slot and replace it
     const newImages = [...images];
     const nullIndex = newImages.findIndex(img => img === null);
-    
+
     if (nullIndex !== -1) {
       newImages[nullIndex] = placeholderUrl;
     } else {
       newImages.push(placeholderUrl);
     }
-    
+
     onChange(newImages);
   };
 
@@ -54,47 +54,25 @@ export function ProductImagesEditor({
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>Product Images</Text>
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={handleAddImage}
-        >
-          <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
-          <Text style={styles.addButtonText}>Add Image</Text>
-        </TouchableOpacity>
       </View>
-      
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.imagesScrollView}
-        contentContainerStyle={styles.imagesContainer}
-      >
+
+      <View style={styles.thumbnailRow}>
         {images.map((image, index) => (
-          <View key={index} style={styles.imageWrapper}>
+          <TouchableOpacity
+            key={index}
+            style={styles.thumbnailWrapper}
+            onPress={handleAddImage}
+          >
             {image ? (
-              <>
-                <Image source={{ uri: image }} style={styles.image} />
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => handleRemoveImage(index)}
-                >
-                  <Ionicons name="close-circle" size={24} color="#FF3B30" />
-                </TouchableOpacity>
-                <Text style={styles.imageLabel}>
-                  {index === 0 ? 'Main' : `Image ${index + 1}`}
-                </Text>
-              </>
+              <Image source={{ uri: image }} style={styles.thumbnail} />
             ) : (
-              <View style={styles.emptyImage}>
-                <Ionicons name="image-outline" size={32} color="#ccc" />
-                <Text style={styles.emptyImageText}>
-                  {index === 0 ? 'Main Image' : `Image ${index + 1}`}
-                </Text>
+              <View style={styles.emptyThumbnail}>
+                <Ionicons name="image-outline" size={20} color="#ccc" />
               </View>
             )}
-          </View>
+          </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -115,51 +93,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
-  addButton: {
+  thumbnailRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 8,
   },
-  addButtonText: {
-    color: '#007AFF',
-    marginLeft: 4,
-    fontWeight: '500',
+  thumbnailWrapper: {
+    width: '18%',
+    aspectRatio: 1,
+    marginHorizontal: '1%',
   },
-  imagesScrollView: {
-    flexGrow: 0,
-  },
-  imagesContainer: {
-    paddingRight: 16,
-  },
-  imageWrapper: {
-    width: 120,
-    height: 150,
-    marginRight: 12,
-    position: 'relative',
-  },
-  image: {
-    width: 120,
-    height: 120,
+  thumbnail: {
+    width: '100%',
+    height: '100%',
     borderRadius: 4,
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
-  removeButton: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-  },
-  imageLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  emptyImage: {
-    width: 120,
-    height: 120,
+  emptyThumbnail: {
+    width: '100%',
+    height: '100%',
     borderRadius: 4,
     borderWidth: 1,
     borderColor: '#f0f0f0',
@@ -167,10 +120,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f9f9f9',
-  },
-  emptyImageText: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 8,
   },
 });
