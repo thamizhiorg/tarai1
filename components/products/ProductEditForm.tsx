@@ -6,21 +6,24 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Text
+  Text,
+  TouchableOpacity
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Product, ProductOption, ProductModifier, ProductMetafield, ProductChannel } from '@/types/Product';
 import { useProducts } from '@/context/ProductContext';
 import { NotionTableInput } from '@/components/ui/NotionTableInput';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
-import { ProductTabHeader } from '@/components/products/ProductTabHeader';
-import { TabView } from '@/components/ui/TabView';
+import { ProductEditHUD } from '@/components/products/ProductEditHUD';
+import { ProductEditBottomBar } from '@/components/products/ProductEditBottomBar';
 import { InventoryManager } from '@/components/inventory/InventoryManager';
 import { ProductImagesEditor } from '@/components/products/ProductImagesEditor';
-import { ProductOptionsEditor } from '@/components/products/ProductOptionsEditor';
-import { ModifiersEditor } from '@/components/products/ModifiersEditor';
-import { MetafieldsEditor } from '@/components/products/MetafieldsEditor';
+import { ProductOptionsFullScreen } from '@/components/products/ProductOptionsFullScreen';
+import { ProductModifiersFullScreen } from '@/components/products/ProductModifiersFullScreen';
+import { ProductMetafieldsFullScreen } from '@/components/products/ProductMetafieldsFullScreen';
+import { ProductNotesFullScreen } from '@/components/products/ProductNotesFullScreen';
 import { ChannelsEditor } from '@/components/products/ChannelsEditor';
+import { ProductEditCard } from '@/components/products/ProductEditCard';
 import { v4 as uuidv4 } from 'uuid';
 
 type ProductEditFormProps = {
@@ -59,6 +62,12 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
   const [options, setOptions] = useState<ProductOption[]>(product.options || []);
   const [modifiers, setModifiers] = useState<ProductModifier[]>(product.modifiers || []);
   const [metafields, setMetafields] = useState<ProductMetafield[]>(product.metafields || []);
+
+  // Modal visibility state
+  const [isOptionsModalVisible, setIsOptionsModalVisible] = useState(false);
+  const [isModifiersModalVisible, setIsModifiersModalVisible] = useState(false);
+  const [isMetafieldsModalVisible, setIsMetafieldsModalVisible] = useState(false);
+  const [isNotesModalVisible, setIsNotesModalVisible] = useState(false);
   const [channels, setChannels] = useState<ProductChannel[]>(
     product.channels || [
       { id: uuidv4(), name: 'POS', enabled: true },
@@ -169,8 +178,8 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
     }
   };
 
-  // Render the product details tab content
-  const renderDetailsTab = () => {
+  // Render the product details section
+  const renderDetailsSection = () => {
     return (
       <ScrollView
         style={styles.scrollView}
@@ -264,91 +273,133 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
           </View>
         </View>
 
-        {/* Product Metafields */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="list-outline" size={18} color="#666" />
-            <Text style={styles.sectionHeaderText}>Custom Attributes</Text>
-            <View style={styles.sectionTitleContainer}>
-              <View style={styles.sectionTitleLine} />
+
+      </ScrollView>
+    );
+  };
+
+  // Render the options & modifiers section
+  const renderOptionsModifiersSection = () => {
+    return (
+      <View style={styles.fullScreenTabContainer}>
+        {/* Custom Attributes (Metafields) */}
+        <TouchableOpacity
+          style={styles.fullScreenButton}
+          onPress={() => setIsMetafieldsModalVisible(true)}
+        >
+          <View style={styles.fullScreenButtonContent}>
+            <Ionicons name="list-outline" size={24} color="#333" style={styles.fullScreenButtonIcon} />
+            <View style={styles.fullScreenButtonTextContainer}>
+              <Text style={styles.fullScreenButtonTitle}>Custom Attributes</Text>
+              <Text style={styles.fullScreenButtonSubtitle}>
+                {metafields.length > 0 ? `${metafields.length} attributes` : 'No attributes added'}
+              </Text>
             </View>
           </View>
+          <Ionicons name="chevron-forward" size={24} color="#999" />
+        </TouchableOpacity>
 
-          <View style={styles.tableContainer}>
-            <MetafieldsEditor
-              metafields={metafields}
-              onChange={setMetafields}
-            />
-          </View>
-        </View>
-      </ScrollView>
-    );
-  };
-
-  // Render the options & modifiers tab content
-  const renderOptionsModifiersTab = () => {
-    return (
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}
-        showsVerticalScrollIndicator={true}
-      >
         {/* Product Options */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.tableContainer}>
-            <ProductOptionsEditor
-              options={options}
-              onChange={setOptions}
-            />
+        <TouchableOpacity
+          style={styles.fullScreenButton}
+          onPress={() => setIsOptionsModalVisible(true)}
+        >
+          <View style={styles.fullScreenButtonContent}>
+            <Ionicons name="options-outline" size={24} color="#333" style={styles.fullScreenButtonIcon} />
+            <View style={styles.fullScreenButtonTextContainer}>
+              <Text style={styles.fullScreenButtonTitle}>Product Options</Text>
+              <Text style={styles.fullScreenButtonSubtitle}>
+                {options.length > 0 ? `${options.length} options` : 'No options added'}
+              </Text>
+            </View>
           </View>
-        </View>
+          <Ionicons name="chevron-forward" size={24} color="#999" />
+        </TouchableOpacity>
 
         {/* Product Modifiers */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.tableContainer}>
-            <ModifiersEditor
-              modifiers={modifiers}
-              onChange={setModifiers}
-            />
+        <TouchableOpacity
+          style={styles.fullScreenButton}
+          onPress={() => setIsModifiersModalVisible(true)}
+        >
+          <View style={styles.fullScreenButtonContent}>
+            <Ionicons name="construct-outline" size={24} color="#333" style={styles.fullScreenButtonIcon} />
+            <View style={styles.fullScreenButtonTextContainer}>
+              <Text style={styles.fullScreenButtonTitle}>Product Modifiers</Text>
+              <Text style={styles.fullScreenButtonSubtitle}>
+                {modifiers.length > 0 ? `${modifiers.length} modifiers` : 'No modifiers added'}
+              </Text>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+          <Ionicons name="chevron-forward" size={24} color="#999" />
+        </TouchableOpacity>
+
+        {/* Full Screen Modals */}
+        <ProductOptionsFullScreen
+          visible={isOptionsModalVisible}
+          options={options}
+          onClose={() => setIsOptionsModalVisible(false)}
+          onSave={setOptions}
+        />
+
+        <ProductModifiersFullScreen
+          visible={isModifiersModalVisible}
+          modifiers={modifiers}
+          onClose={() => setIsModifiersModalVisible(false)}
+          onSave={setModifiers}
+        />
+
+        <ProductMetafieldsFullScreen
+          visible={isMetafieldsModalVisible}
+          metafields={metafields}
+          onClose={() => setIsMetafieldsModalVisible(false)}
+          onSave={setMetafields}
+        />
+      </View>
     );
   };
 
-  // Render the notes tab content
-  const renderNotesAndChannelsTab = () => {
+  // Render the notes and channels section
+  const renderNotesAndChannelsSection = () => {
     return (
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}
-        showsVerticalScrollIndicator={true}
-      >
+      <View style={styles.sectionContent}>
         {/* Sales Channels */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.tableContainer}>
-            <ChannelsEditor
-              channels={channels}
-              onChange={setChannels}
-            />
-          </View>
-        </View>
-
-        {/* Rich Text Notes */}
-        <View style={[styles.sectionContainer, { marginTop: 24 }]}>
-          <RichTextEditor
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Add notes about this product..."
-            minHeight={200}
+        <View style={styles.channelsContainer}>
+          <ChannelsEditor
+            channels={channels}
+            onChange={setChannels}
           />
         </View>
-      </ScrollView>
+
+        {/* Notes Button */}
+        <TouchableOpacity
+          style={styles.fullScreenButton}
+          onPress={() => setIsNotesModalVisible(true)}
+        >
+          <View style={styles.fullScreenButtonContent}>
+            <Ionicons name="document-text-outline" size={24} color="#333" style={styles.fullScreenButtonIcon} />
+            <View style={styles.fullScreenButtonTextContainer}>
+              <Text style={styles.fullScreenButtonTitle}>Product Notes</Text>
+              <Text style={styles.fullScreenButtonSubtitle}>
+                {notes ? 'Edit product notes' : 'Add notes about this product'}
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={24} color="#999" />
+        </TouchableOpacity>
+
+        {/* Notes Full Screen Modal */}
+        <ProductNotesFullScreen
+          visible={isNotesModalVisible}
+          notes={notes}
+          onClose={() => setIsNotesModalVisible(false)}
+          onSave={setNotes}
+        />
+      </View>
     );
   };
 
-  // Render the inventory tab content
-  const renderInventoryTab = () => {
+  // Render the inventory section
+  const renderInventorySection = () => {
     if (isNew || !product.id) {
       return (
         <View style={styles.emptyInventoryContainer}>
@@ -367,6 +418,32 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
     );
   };
 
+  // Create a function to handle product updates from the ProductEditCard
+  const handleProductUpdate = (updatedProduct: Product) => {
+    // Update local state
+    setName(updatedProduct.name || '');
+    setPrice(updatedProduct.price?.toString() || '0');
+    setStock(updatedProduct.stock?.toString() || '0');
+    setCategory(updatedProduct.category || '');
+    setType(updatedProduct.type || '');
+    setVendor(updatedProduct.vendor || '');
+    setBrand(updatedProduct.brand || '');
+    setUnit(updatedProduct.unit || '');
+    setCollection(updatedProduct.collection || '');
+    setNotes(updatedProduct.notes || '');
+    setImages([
+      updatedProduct.f1 || null,
+      updatedProduct.f2 || null,
+      updatedProduct.f3 || null,
+      updatedProduct.f4 || null,
+      updatedProduct.f5 || null
+    ]);
+    setOptions(updatedProduct.options || []);
+    setModifiers(updatedProduct.modifiers || []);
+    setMetafields(updatedProduct.metafields || []);
+    setChannels(updatedProduct.channels || []);
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -374,52 +451,44 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
       keyboardVerticalOffset={100}
     >
       <View style={styles.formContainer}>
+        {/* Custom HUD with product name */}
+        <ProductEditHUD productName={name} />
 
-        <View style={styles.headerContainer}>
-          <ProductTabHeader
-            onSave={handleSave}
-            onCancel={onCancel}
-            isSaving={isSaving}
+        {/* Content container with padding for bottom bar */}
+        <View style={styles.contentContainer}>
+          {/* New Product Edit Card */}
+          <ProductEditCard
+            product={{
+              ...product as Product,
+              name,
+              price: parseFloat(price) || 0,
+              stock: parseInt(stock) || 0,
+              category,
+              type,
+              vendor,
+              brand,
+              unit,
+              collection,
+              f1: images[0],
+              f2: images[1],
+              f3: images[2],
+              f4: images[3],
+              f5: images[4],
+              options,
+              modifiers,
+              metafields,
+              channels,
+              notes
+            } as Product}
+            onSave={handleProductUpdate}
           />
         </View>
 
-        <TabView
-          tabs={[
-            {
-              key: 'details',
-              title: 'C',
-              showTitleWithIcon: true
-            },
-            {
-              key: 'options',
-              title: 'O',
-              showTitleWithIcon: true
-            },
-            {
-              key: 'inventory',
-              title: 'I',
-              showTitleWithIcon: true
-            },
-            {
-              key: 'notes',
-              title: 'N',
-              showTitleWithIcon: true
-            }
-          ]}
-          renderScene={(tab) => {
-            switch (tab.key) {
-              case 'details':
-                return renderDetailsTab();
-              case 'options':
-                return renderOptionsModifiersTab();
-              case 'inventory':
-                return renderInventoryTab();
-              case 'notes':
-                return renderNotesAndChannelsTab();
-              default:
-                return renderDetailsTab();
-            }
-          }}
+        {/* Bottom action bar */}
+        <ProductEditBottomBar
+          onSave={handleSave}
+          onCancel={onCancel}
+          isSaving={isSaving}
         />
       </View>
     </KeyboardAvoidingView>
@@ -435,9 +504,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 0,
   },
-  headerContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+  contentContainer: {
+    flex: 1,
+    paddingBottom: 80, // Add padding for the bottom bar
   },
   scrollView: {
     flex: 1,
@@ -484,6 +553,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  fullScreenTabContainer: {
+    flex: 1,
+    backgroundColor: '#f8f8f8',
+  },
+  fullScreenButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  fullScreenButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  fullScreenButtonIcon: {
+    marginRight: 16,
+  },
+  fullScreenButtonTextContainer: {
+    flex: 1,
+  },
+  fullScreenButtonTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  fullScreenButtonSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
   inventoryContainer: {
     backgroundColor: '#ffffff',
     borderRadius: 8,
@@ -506,5 +610,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+  },
+  channelsContainer: {
+    marginBottom: 16,
   },
 });

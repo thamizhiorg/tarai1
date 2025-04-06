@@ -1,14 +1,17 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Product } from '@/types/Product';
+import { ColumnVisibility } from './ProductListHeader';
 
 type ProductListItemProps = {
   product: Product;
   onPress: (product: Product) => void;
   isSelected: boolean;
+  columnVisibility: ColumnVisibility;
 };
 
-export function ProductListItem({ product, onPress, isSelected }: ProductListItemProps) {
+export function ProductListItem({ product, onPress, isSelected, columnVisibility }: ProductListItemProps) {
   return (
     <TouchableOpacity
       style={[
@@ -17,30 +20,48 @@ export function ProductListItem({ product, onPress, isSelected }: ProductListIte
       ]}
       onPress={() => onPress(product)}
     >
+      {/* Thumbnail Image */}
+      <View style={styles.imageContainer}>
+        {product.f1 ? (
+          <Image source={{ uri: product.f1 }} style={styles.thumbnail} resizeMode="cover" />
+        ) : (
+          <View style={styles.placeholderContainer}>
+            <Ionicons name="image-outline" size={24} color="#ccc" />
+          </View>
+        )}
+      </View>
+
+      {/* Content */}
       <View style={styles.contentContainer}>
         <Text style={styles.name} numberOfLines={1}>{product.name}</Text>
 
         <View style={styles.detailsRow}>
-          {product.category && (
+          {columnVisibility.category && product.category && (
             <Text style={styles.category}>{product.category}</Text>
           )}
 
-          <Text style={styles.price}>
-            {product.price != null ? `$${Number(product.price).toFixed(2)}` : 'No price'}
-          </Text>
+          {columnVisibility.price && (
+            <Text style={styles.price}>
+              {product.price != null ? `$${Number(product.price).toFixed(2)}` : 'No price'}
+            </Text>
+          )}
         </View>
 
         <View style={styles.stockRow}>
-          <Text style={[
-            styles.stockText,
-            (product.stock != null && Number(product.stock) > 0) ? styles.inStock : styles.outOfStock
-          ]}>
-            {product.stock != null && Number(product.stock) > 0
-              ? `In Stock: ${product.stock}`
-              : 'Out of Stock'}
-          </Text>
+          {columnVisibility.stock && (
+            <Text style={[
+              styles.stockText,
+              (product.stock != null && Number(product.stock) > 0) ? styles.inStock : styles.outOfStock
+            ]}>
+              {product.stock != null && Number(product.stock) > 0
+                ? `In Stock: ${product.stock}`
+                : 'Out of Stock'}
+            </Text>
+          )}
 
-          <Text style={styles.sku}>ID: {product.id}</Text>
+          {columnVisibility.id && (
+            <Text style={styles.sku}>ID: {product.id}</Text>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -49,6 +70,7 @@ export function ProductListItem({ product, onPress, isSelected }: ProductListIte
 
 const styles = StyleSheet.create({
   container: {
+    flexDirection: 'row',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
@@ -57,6 +79,25 @@ const styles = StyleSheet.create({
   },
   selectedContainer: {
     backgroundColor: '#f8f8ff',
+  },
+  imageContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginRight: 12,
+    backgroundColor: '#f5f5f5',
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholderContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
   },
   contentContainer: {
     flex: 1,

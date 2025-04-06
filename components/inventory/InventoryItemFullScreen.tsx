@@ -23,6 +23,7 @@ type InventoryItemFullScreenProps = {
   isNew?: boolean;
   onSave: (item: Inventory) => void;
   onCancel: () => void;
+  onDelete?: () => void;
   isSaving?: boolean;
 };
 
@@ -32,6 +33,7 @@ export function InventoryItemFullScreen({
   isNew = false,
   onSave,
   onCancel,
+  onDelete,
   isSaving = false
 }: InventoryItemFullScreenProps) {
   const [name, setName] = useState(item.name || '');
@@ -47,7 +49,7 @@ export function InventoryItemFullScreen({
   const [location, setLocation] = useState(item.location || '');
   const [modifiers, setModifiers] = useState(item.modifiers || []);
   const [metafields, setMetafields] = useState(item.metafields || []);
-  
+
   const insets = useSafeAreaInsets();
 
   const handleSave = () => {
@@ -94,8 +96,8 @@ export function InventoryItemFullScreen({
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <TouchableOpacity 
-              style={styles.backButton} 
+            <TouchableOpacity
+              style={styles.backButton}
               onPress={onCancel}
               disabled={isSaving}
             >
@@ -105,20 +107,40 @@ export function InventoryItemFullScreen({
               {isNew ? 'Add Variant' : 'Edit Variant'}
             </Text>
           </View>
-          <TouchableOpacity 
-            style={[styles.saveButton, isSaving && styles.disabledButton]} 
-            onPress={handleSave}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="checkmark" size={18} color="#fff" style={styles.buttonIcon} />
-                <Text style={styles.saveButtonText}>Save</Text>
-              </>
+          <View style={styles.headerRight}>
+            {!isNew && onDelete && (
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => {
+                  Alert.alert(
+                    'Delete Variant',
+                    'Are you sure you want to delete this variant?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Delete', style: 'destructive', onPress: onDelete }
+                    ]
+                  );
+                }}
+                disabled={isSaving}
+              >
+                <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.saveButton, isSaving && styles.disabledButton]}
+              onPress={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={18} color="#fff" style={styles.buttonIcon} />
+                  <Text style={styles.saveButtonText}>Save</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Form Content */}
@@ -127,7 +149,7 @@ export function InventoryItemFullScreen({
           style={styles.formContainer}
           keyboardVerticalOffset={100}
         >
-          <ScrollView 
+          <ScrollView
             style={styles.scrollView}
             contentContainerStyle={[
               styles.scrollViewContent,
@@ -136,7 +158,7 @@ export function InventoryItemFullScreen({
           >
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>Basic Information</Text>
-              
+
               <View style={styles.formRow}>
                 <Text style={styles.label}>Name:</Text>
                 <TextInput
@@ -180,7 +202,7 @@ export function InventoryItemFullScreen({
 
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>Inventory</Text>
-              
+
               <View style={styles.formRow}>
                 <Text style={styles.label}>Available:</Text>
                 <TextInput
@@ -217,7 +239,7 @@ export function InventoryItemFullScreen({
 
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>Pricing</Text>
-              
+
               <View style={styles.formRow}>
                 <Text style={styles.label}>Price:</Text>
                 <TextInput
@@ -254,7 +276,7 @@ export function InventoryItemFullScreen({
 
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>Location</Text>
-              
+
               <View style={styles.formRow}>
                 <Text style={styles.label}>Location:</Text>
                 <TextInput
@@ -293,6 +315,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   backButton: {
     marginRight: 12,
   },
@@ -300,6 +326,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+  },
+  deleteButton: {
+    padding: 8,
+    marginRight: 12,
   },
   saveButton: {
     flexDirection: 'row',
