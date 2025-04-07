@@ -277,6 +277,10 @@ export async function updateProduct(product: Product): Promise<boolean> {
         vendor = '${(product.vendor || '').replace(/'/g, "''")}',
         brand = '${(product.brand || '').replace(/'/g, "''")}',
         f1 = '${(product.f1 || '').replace(/'/g, "''")}',
+        f2 = '${(product.f2 || '').replace(/'/g, "''")}',
+        f3 = '${(product.f3 || '').replace(/'/g, "''")}',
+        f4 = '${(product.f4 || '').replace(/'/g, "''")}',
+        f5 = '${(product.f5 || '').replace(/'/g, "''")}',
         notes = '${(product.notes || '').replace(/'/g, "''")}'
       WHERE id = ${product.id}
     `;
@@ -307,7 +311,7 @@ export async function createProduct(product: Omit<Product, 'id'>): Promise<Produ
     const sql = `
       INSERT INTO products (
         storeid, name, price, stock, category, type, vendor, brand,
-        options, modifiers, metafields, channels, f1, notes
+        options, modifiers, metafields, channels, f1, f2, f3, f4, f5, notes
       ) VALUES (
         'S1',
         '${product.name.replace(/'/g, "''")}',
@@ -322,6 +326,10 @@ export async function createProduct(product: Omit<Product, 'id'>): Promise<Produ
         '${metafields}',
         '${channels}',
         '${(product.f1 || '').replace(/'/g, "''")}',
+        '${(product.f2 || '').replace(/'/g, "''")}',
+        '${(product.f3 || '').replace(/'/g, "''")}',
+        '${(product.f4 || '').replace(/'/g, "''")}',
+        '${(product.f5 || '').replace(/'/g, "''")}',
         '${(product.notes || '').replace(/'/g, "''")}'
       )
     `;

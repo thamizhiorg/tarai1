@@ -6,11 +6,15 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
-  Dimensions
+  Dimensions,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Product, ProductChannel } from '@/types/Product';
 import { InventoryListFullScreen } from '@/components/inventory/InventoryListFullScreen';
+import * as ImagePicker from 'expo-image-picker';
+import { uploadProductImage } from '@/services/SevallaStorageService';
 
 // Extended product type for UI actions
 type ProductWithUIActions = Product & {
@@ -47,6 +51,7 @@ export function ProductEditCard({ product, onSave, onBack }: ProductEditCardProp
   const [isModifiersVisible, setIsModifiersVisible] = useState(false);
   const [isMetafieldsVisible, setIsMetafieldsVisible] = useState(false);
   const [isNotesVisible, setIsNotesVisible] = useState(false);
+  const [uploadingImageIndex, setUploadingImageIndex] = useState<number | null>(null);
 
   // Local state for product data
   const [localProduct, setLocalProduct] = useState<Product>(product);
@@ -72,15 +77,84 @@ export function ProductEditCard({ product, onSave, onBack }: ProductEditCardProp
     onSave({ ...localProduct, notes });
   };
 
+  // Handle image upload
+  const handleImageUpload = async (index: number) => {
+    // Request permission to access the photo library
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please grant permission to access your photos');
+      return;
+    }
+
+    try {
+      // Open the image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images, // Using deprecated API but still works
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selectedImageUri = result.assets[0].uri;
+
+        // Set uploading state to show loading indicator
+        setUploadingImageIndex(index);
+
+        try {
+          // Upload the image to Sevalla storage
+          const imageUrl = await uploadProductImage(selectedImageUri);
+
+          // Update the product with the new image URL
+          const updatedProduct = { ...localProduct };
+
+          // Update the appropriate field based on index
+          switch (index) {
+            case 0:
+              updatedProduct.f1 = imageUrl;
+              break;
+            case 1:
+              updatedProduct.f2 = imageUrl;
+              break;
+            case 2:
+              updatedProduct.f3 = imageUrl;
+              break;
+            case 3:
+              updatedProduct.f4 = imageUrl;
+              break;
+            case 4:
+              updatedProduct.f5 = imageUrl;
+              break;
+          }
+
+          // Update local state
+          setLocalProduct(updatedProduct);
+
+          // Save the updated product
+          onSave(updatedProduct);
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          Alert.alert('Upload Failed', 'Failed to upload image. Please try again.');
+        } finally {
+          setUploadingImageIndex(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
   // Render product images
   const renderProductImages = () => {
     // Create an array of 5 elements to ensure we always show 5 image tiles
     const displayImages = [
-      product.f1 || null,
-      product.f2 || null,
-      product.f3 || null,
-      product.f4 || null,
-      product.f5 || null
+      localProduct.f1 || null,
+      localProduct.f2 || null,
+      localProduct.f3 || null,
+      localProduct.f4 || null,
+      localProduct.f5 || null
     ];
 
     return (
@@ -90,8 +164,13 @@ export function ProductEditCard({ product, onSave, onBack }: ProductEditCardProp
             key={index}
             style={styles.imageWrapper}
             activeOpacity={0.7}
+            onPress={() => handleImageUpload(index)}
           >
-            {image ? (
+            {uploadingImageIndex === index ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#0066cc" />
+              </View>
+            ) : image ? (
               <Image source={{ uri: image as string }} style={styles.image} resizeMode="cover" />
             ) : (
               <View style={styles.placeholderImage}>
@@ -326,6 +405,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#cccccc',
     fontWeight: '500',
+  },
+  loadingContainer: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#f9f9f9',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   inventorySection: {
     flexDirection: 'row',
