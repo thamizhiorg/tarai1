@@ -9,9 +9,11 @@ import { HUD } from '@/components/HUD';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useAgent } from '@/context/AgentContext';
+import { useProducts } from '@/context/ProductContext';
 
 export default function TabLayout() {
   const { setCurrentAgentId } = useAgent();
+  const { selectedProduct } = useProducts();
   const router = useRouter();
 
   // Handle agent changes from HUD
@@ -25,7 +27,11 @@ export default function TabLayout() {
   return (
     <ProtectedRoute>
       <View style={{ flex: 1 }}>
-        <HUD onAgentChange={handleAgentChange} />
+        <HUD
+          onAgentChange={handleAgentChange}
+          productTitle={selectedProduct?.name}
+          productId={selectedProduct?.id}
+        />
         <Tabs
           tabBar={(props) => <CustomTabBar {...props} />}
           screenOptions={{

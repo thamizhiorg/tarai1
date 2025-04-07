@@ -8,8 +8,14 @@ import {
   ScrollView,
   Dimensions
 } from 'react-native';
-import { Product } from '@/types/Product';
+import { Ionicons } from '@expo/vector-icons';
+import { Product, ProductChannel } from '@/types/Product';
 import { InventoryListFullScreen } from '@/components/inventory/InventoryListFullScreen';
+
+// Extended product type for UI actions
+type ProductWithUIActions = Product & {
+  saveAction?: boolean;
+};
 import { ProductOptionsFullScreen } from '@/components/products/ProductOptionsFullScreen';
 import { ProductModifiersFullScreen } from '@/components/products/ProductModifiersFullScreen';
 import { ProductMetafieldsFullScreen } from '@/components/products/ProductMetafieldsFullScreen';
@@ -17,15 +23,29 @@ import { ProductNotesFullScreen } from '@/components/products/ProductNotesFullSc
 
 type ProductEditCardProps = {
   product: Product;
-  onSave: (updatedProduct: Product) => void;
+  onSave: (updatedProduct: ProductWithUIActions) => void;
+  onBack?: () => void;
 };
 
-export function ProductEditCard({ product, onSave }: ProductEditCardProps) {
+// Helper functions to check channel status
+const isPosEnabled = (channels: ProductChannel[] | null | undefined) => {
+  if (!channels) return false;
+  const posChannel = channels.find(c => c.name === 'POS');
+  return posChannel ? posChannel.enabled : false;
+};
+
+const isOnlineEnabled = (channels: ProductChannel[] | null | undefined) => {
+  if (!channels) return false;
+  const onlineChannel = channels.find(c => c.name === 'Online');
+  return onlineChannel ? onlineChannel.enabled : false;
+};
+
+export function ProductEditCard({ product, onSave, onBack }: ProductEditCardProps) {
   // State for managing drawer visibility
   const [isInventoryVisible, setIsInventoryVisible] = useState(false);
   const [isOptionsVisible, setIsOptionsVisible] = useState(false);
   const [isModifiersVisible, setIsModifiersVisible] = useState(false);
-  const [isCustomAttributesVisible, setIsCustomAttributesVisible] = useState(false);
+  const [isMetafieldsVisible, setIsMetafieldsVisible] = useState(false);
   const [isNotesVisible, setIsNotesVisible] = useState(false);
 
   // Local state for product data
@@ -54,27 +74,31 @@ export function ProductEditCard({ product, onSave }: ProductEditCardProps) {
 
   // Render product images
   const renderProductImages = () => {
-    const images = [
-      product.f1,
-      product.f2,
-      product.f3,
-      product.f4,
-      product.f5
-    ].filter(Boolean);
-
-    // If no images, use placeholders
-    const displayImages = images.length > 0 ? images : Array(5).fill(null);
+    // Create an array of 5 elements to ensure we always show 5 image tiles
+    const displayImages = [
+      product.f1 || null,
+      product.f2 || null,
+      product.f3 || null,
+      product.f4 || null,
+      product.f5 || null
+    ];
 
     return (
       <View style={styles.imagesContainer}>
         {displayImages.map((image, index) => (
-          <View key={index} style={styles.imageWrapper}>
+          <TouchableOpacity
+            key={index}
+            style={styles.imageWrapper}
+            activeOpacity={0.7}
+          >
             {image ? (
               <Image source={{ uri: image as string }} style={styles.image} resizeMode="cover" />
             ) : (
-              <View style={styles.placeholderImage} />
+              <View style={styles.placeholderImage}>
+                <Text style={styles.placeholderText}>f{index + 1}</Text>
+              </View>
             )}
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
     );
@@ -104,59 +128,123 @@ export function ProductEditCard({ product, onSave }: ProductEditCardProps) {
         </View>
       </TouchableOpacity>
 
-      {/* Options Section */}
-      <TouchableOpacity
-        style={styles.optionsSection}
-        onPress={() => setIsOptionsVisible(true)}
-      >
-        <Text style={styles.sectionTitle}>options</Text>
-        {/* Options content would go here */}
-      </TouchableOpacity>
-
-      {/* Grid Sections - First Row */}
-      <View style={styles.gridContainer}>
+      {/* Options and Modifiers Section - Both with same design */}
+      <View style={styles.inventorySection}>
         <TouchableOpacity
-          style={styles.gridItem}
+          style={styles.optionModifierTile}
+          onPress={() => setIsOptionsVisible(true)}
+        >
+          <Text style={styles.sectionTitle}>Options</Text>
+          <Text style={styles.inventoryCount}>{(product.options || []).length}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.optionModifierTile, { borderRightWidth: 0 }]}
           onPress={() => setIsModifiersVisible(true)}
         >
-          <Text style={styles.gridItemTitle}>modifiers</Text>
+          <Text style={[styles.sectionTitle, styles.rightAlignedText]}>Modifiers</Text>
+          <Text style={[styles.inventoryCount, styles.rightAlignedText]}>{(product.modifiers || []).length}</Text>
         </TouchableOpacity>
+      </View>
 
+      {/* Metafields and Notes Section - Both with same design */}
+      <View style={styles.inventorySection}>
         <TouchableOpacity
-          style={styles.gridItem}
-          onPress={() => setIsCustomAttributesVisible(true)}
+          style={styles.optionModifierTile}
+          onPress={() => setIsMetafieldsVisible(true)}
         >
-          <Text style={styles.gridItemTitle}>custom attributes</Text>
+          <Text style={styles.sectionTitle}>Metafields</Text>
+          <Text style={styles.inventoryCount}>{(product.metafields || []).length}</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
-          style={styles.gridItem}
+          style={[styles.optionModifierTile, { borderRightWidth: 0 }]}
           onPress={() => setIsNotesVisible(true)}
         >
-          <Text style={styles.gridItemTitle}>notes</Text>
+          <Text style={[styles.sectionTitle, styles.rightAlignedText]}>Notes</Text>
+          <Text style={[styles.inventoryCount, styles.rightAlignedText]}>
+            {product.notes ? '1' : '0'}
+          </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Bottom Grid - Second Row */}
-      <View style={styles.gridContainer}>
-        <View style={styles.gridItem}>
-          <Text style={styles.gridItemTitle}>collection</Text>
-        </View>
+      {/* Collection and Category in one row */}
+      <View style={styles.tileRow}>
+        <TouchableOpacity style={styles.simpleTile}>
+          <View style={styles.tileContentRow}>
+            <Text style={styles.simpleTileTitle}>Collection</Text>
+          </View>
+        </TouchableOpacity>
 
-        <View style={styles.gridItem}>
-          <Text style={styles.gridItemTitle}>category</Text>
-        </View>
+        <TouchableOpacity style={[styles.simpleTile, styles.lastTile]}>
+          <View style={[styles.tileContentRow, styles.rightAlignedContent]}>
+            <Text style={styles.simpleTileTitle}>Category</Text>
+          </View>
+        </TouchableOpacity>
       </View>
 
-      {/* Bottom Grid - Third Row */}
-      <View style={styles.gridContainer}>
-        <View style={styles.gridItem}>
-          <Text style={styles.gridItemTitle}>brand</Text>
-        </View>
+      {/* POS and Online Tiles */}
+      <View style={styles.tileRow}>
+        <TouchableOpacity
+          style={styles.simpleTile}
+          onPress={() => {
+            // Toggle POS channel
+            const channels = [...(localProduct.channels || [])]
+            const posIndex = channels.findIndex(c => c.name === 'POS')
+            if (posIndex >= 0) {
+              channels[posIndex].enabled = !channels[posIndex].enabled
+            } else {
+              channels.push({ id: 'pos', name: 'POS', enabled: true })
+            }
+            setLocalProduct(prev => ({ ...prev, channels }))
+          }}
+        >
+          <View style={styles.tileContentRow}>
+            <Text style={styles.simpleTileTitle}>POS</Text>
+            <View style={[styles.statusDot, {
+              backgroundColor: isPosEnabled(localProduct.channels) ? '#FF3B30' : '#ccc'
+            }]} />
+          </View>
+        </TouchableOpacity>
 
-        <View style={styles.gridItem}>
-          <Text style={styles.gridItemTitle}>vendor</Text>
-        </View>
+        <TouchableOpacity
+          style={[styles.simpleTile, styles.lastTile]}
+          onPress={() => {
+            // Toggle Online channel
+            const channels = [...(localProduct.channels || [])]
+            const onlineIndex = channels.findIndex(c => c.name === 'Online')
+            if (onlineIndex >= 0) {
+              channels[onlineIndex].enabled = !channels[onlineIndex].enabled
+            } else {
+              channels.push({ id: 'online', name: 'Online', enabled: true })
+            }
+            setLocalProduct(prev => ({ ...prev, channels }))
+          }}
+        >
+          <View style={[styles.tileContentRow, styles.rightAlignedContent]}>
+            <Text style={styles.simpleTileTitle}>Online</Text>
+            <View style={[styles.statusDot, {
+              backgroundColor: isOnlineEnabled(localProduct.channels) ? '#FF3B30' : '#ccc'
+            }]} />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Back and Save Tiles */}
+      <View style={styles.backTileContainer}>
+        <TouchableOpacity style={styles.backTile} onPress={onBack}>
+          <Ionicons name="arrow-back-outline" size={24} color="#666" />
+          <Text style={styles.backTileText}>Back</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.saveTile}
+          onPress={() => {
+            // Make sure channels are included in the save
+            onSave({...localProduct, saveAction: true})
+          }}
+        >
+          <Ionicons name="checkmark-outline" size={24} color="#fff" />
+          <Text style={styles.saveTileText}>Save</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Full Screen Components */}
@@ -181,11 +269,11 @@ export function ProductEditCard({ product, onSave }: ProductEditCardProps) {
       />
 
       <ProductMetafieldsFullScreen
-        visible={isCustomAttributesVisible}
+        visible={isMetafieldsVisible}
         metafields={localProduct.metafields || []}
-        onClose={() => setIsCustomAttributesVisible(false)}
+        onClose={() => setIsMetafieldsVisible(false)}
         onSave={handleSaveMetafields}
-        title="Custom Attributes"
+        title="Metafields"
       />
 
       <ProductNotesFullScreen
@@ -194,6 +282,8 @@ export function ProductEditCard({ product, onSave }: ProductEditCardProps) {
         onClose={() => setIsNotesVisible(false)}
         onSave={handleSaveNotes}
       />
+
+
     </ScrollView>
   );
 }
@@ -201,42 +291,25 @@ export function ProductEditCard({ product, onSave }: ProductEditCardProps) {
 const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
+
   container: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  productTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
+    paddingTop: 0, // No padding at the top
   },
   imagesContainer: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'space-between',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+    width: '100%',
   },
   imageWrapper: {
-    width: (width - 32) / 5 - 4,
-    height: (width - 32) / 5 - 4,
-    borderRadius: 4,
+    width: width / 5, // Exactly 1/5 of screen width
+    height: width / 5, // Make it square
     overflow: 'hidden',
+    borderWidth: 0.5,
+    borderColor: '#e0e0e0',
   },
   image: {
     width: '100%',
@@ -245,8 +318,14 @@ const styles = StyleSheet.create({
   placeholderImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#e0e0e0',
-    borderRadius: 4,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: '#cccccc',
+    fontWeight: '500',
   },
   inventorySection: {
     flexDirection: 'row',
@@ -254,6 +333,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   inventoryLeft: {
+    flex: 1,
+    padding: 16,
+    borderRightWidth: 1,
+    borderRightColor: '#f0f0f0',
+  },
+  optionModifierTile: {
     flex: 1,
     padding: 16,
     borderRightWidth: 1,
@@ -274,6 +359,12 @@ const styles = StyleSheet.create({
     color: '#ccc',
     marginTop: 8,
   },
+  inventoryValue: {
+    fontSize: 24,
+    fontWeight: '300',
+    color: '#666',
+    marginTop: 8,
+  },
   stockTitle: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -290,12 +381,7 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'right',
   },
-  optionsSection: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    minHeight: 100,
-  },
+
   gridContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -324,5 +410,157 @@ const styles = StyleSheet.create({
   gridItemValue: {
     fontSize: 14,
     color: '#666',
+  },
+  fourColumnRow: {
+    flexDirection: 'row',
+    width: '100%',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    minHeight: 80, // Original height
+  },
+  columnItem: {
+    flex: 1,
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#f0f0f0',
+  },
+  columnTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  columnValue: {
+    fontSize: 18,
+    fontWeight: '400',
+    color: '#333',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  lastColumnItem: {
+    borderRightWidth: 0,
+  },
+  backTileContainer: {
+    flexDirection: 'row',
+    width: '100%',
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  backTile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8f8f8',
+    padding: 20,
+    borderRadius: 0,
+    flex: 1,
+    borderRightWidth: 1,
+    borderRightColor: '#e0e0e0',
+    minHeight: 80,
+  },
+  backTileText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#666',
+    marginLeft: 8,
+  },
+  saveTile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#007AFF',
+    padding: 20,
+    borderRadius: 0,
+    flex: 1,
+    minHeight: 80,
+  },
+  saveTileText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#fff',
+    marginLeft: 8,
+  },
+  rightAlignedText: {
+    textAlign: 'right',
+  },
+  channelRow: {
+    flexDirection: 'row',
+    width: '100%',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    minHeight: 60, // Smaller height than other rows
+  },
+  channelItem: {
+    flex: 1,
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#f0f0f0',
+  },
+  channelTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 8,
+  },
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FF3B30', // Red dot
+    marginLeft: 8, // Add spacing between text and dot
+  },
+  rightAlignedDot: {
+    alignSelf: 'flex-end',
+    marginRight: '45%', // Center the dot horizontally when right-aligned
+  },
+  rightAlignedItem: {
+    alignItems: 'flex-end',
+    paddingRight: 16, // Add some padding on the right
+  },
+  leftAlignedText: {
+    textAlign: 'left',
+  },
+  leftAlignedItem: {
+    alignItems: 'flex-start',
+    paddingLeft: 16, // Add some padding on the left
+  },
+  tileRow: {
+    flexDirection: 'row',
+    width: '100%',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  simpleTile: {
+    flex: 1,
+    padding: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#f0f0f0',
+    height: 60, // Fixed height for consistency
+  },
+  simpleTileTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  lastTile: {
+    borderRightWidth: 0,
+  },
+  tileContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    width: '100%',
+  },
+  rightAlignedContent: {
+    justifyContent: 'flex-end',
   },
 });

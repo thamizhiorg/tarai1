@@ -14,7 +14,7 @@ import { Product, ProductOption, ProductModifier, ProductMetafield, ProductChann
 import { useProducts } from '@/context/ProductContext';
 import { NotionTableInput } from '@/components/ui/NotionTableInput';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
-import { ProductEditHUD } from '@/components/products/ProductEditHUD';
+// ProductEditHUD removed as requested
 import { ProductEditBottomBar } from '@/components/products/ProductEditBottomBar';
 import { InventoryManager } from '@/components/inventory/InventoryManager';
 import { ProductImagesEditor } from '@/components/products/ProductImagesEditor';
@@ -419,7 +419,7 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
   };
 
   // Create a function to handle product updates from the ProductEditCard
-  const handleProductUpdate = (updatedProduct: Product) => {
+  const handleProductUpdate = (updatedProduct: Product & { saveAction?: boolean }) => {
     // Update local state
     setName(updatedProduct.name || '');
     setPrice(updatedProduct.price?.toString() || '0');
@@ -442,6 +442,11 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
     setModifiers(updatedProduct.modifiers || []);
     setMetafields(updatedProduct.metafields || []);
     setChannels(updatedProduct.channels || []);
+
+    // If this is a save action (not just an update), trigger the save
+    if (updatedProduct.saveAction) {
+      handleSave();
+    }
   };
 
   return (
@@ -451,10 +456,9 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
       keyboardVerticalOffset={100}
     >
       <View style={styles.formContainer}>
-        {/* Custom HUD with product name */}
-        <ProductEditHUD productName={name} />
+        {/* HUD removed as requested */}
 
-        {/* Content container with padding for bottom bar */}
+        {/* Content container */}
         <View style={styles.contentContainer}>
           {/* New Product Edit Card */}
           <ProductEditCard
@@ -481,15 +485,11 @@ export function ProductEditForm({ product, isNew = false, onSave, onCancel }: Pr
               notes
             } as Product}
             onSave={handleProductUpdate}
+            onBack={onCancel}
           />
         </View>
 
-        {/* Bottom action bar */}
-        <ProductEditBottomBar
-          onSave={handleSave}
-          onCancel={onCancel}
-          isSaving={isSaving}
-        />
+        {/* Bottom action bar removed in favor of back tile */}
       </View>
     </KeyboardAvoidingView>
   );
@@ -499,6 +499,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+    paddingTop: 0, // No padding needed at top since HUD is removed
   },
   formContainer: {
     flex: 1,
@@ -506,7 +507,8 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    paddingBottom: 80, // Add padding for the bottom bar
+    paddingBottom: 0, // No padding needed at bottom since bottom bar is removed
+    paddingTop: 0, // No padding needed at top since HUD is removed
   },
   scrollView: {
     flex: 1,

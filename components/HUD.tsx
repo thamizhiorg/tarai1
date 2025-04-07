@@ -24,9 +24,11 @@ const agents = [
 
 type HUDProps = {
   onAgentChange?: (agentId: string) => void;
+  productTitle?: string;
+  productId?: number;
 };
 
-export function HUD({ onAgentChange }: HUDProps = {}) {
+export function HUD({ onAgentChange, productTitle, productId }: HUDProps = {}) {
   const { currentAgentId, setCurrentAgentId } = useAgent();
   const [selectedAgent, setSelectedAgent] = useState(() => {
     return agents.find(agent => agent.id === currentAgentId) || agents[0];
@@ -86,7 +88,9 @@ export function HUD({ onAgentChange }: HUDProps = {}) {
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.hudBar}>
-        <Text style={styles.hudTitle}>HUD</Text>
+        <Text style={styles.hudTitle}>
+          {productTitle ? productTitle.toUpperCase() : 'HUD'}
+        </Text>
 
         <TouchableOpacity
           style={styles.agentSelector}
